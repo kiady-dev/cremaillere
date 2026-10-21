@@ -58,7 +58,13 @@ audio{width:100%;margin:1rem 0 .4rem}
     <label for="name" id="nameLabel"></label>
     <input type="text" id="name" maxlength="40" autocomplete="given-name">
 
-    <div id="recorder">
+    <div id="perm" style="margin-top:1.4rem">
+      <p class="hint" id="permText" style="margin-bottom:.9rem"></p>
+      <button class="btn main" id="allow"></button>
+      <p class="hint err" id="permHelp" hidden style="margin-top:.9rem"></p>
+    </div>
+
+    <div id="recorder" hidden>
       <button class="mic" id="mic" aria-label="Micro">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
       </button>
@@ -96,6 +102,8 @@ const CONFIG = {
     thanksT: "Merci de tout cœur !", thanksP: "Votre voix fait désormais partie de la maison.", again: "Laisser un autre message",
     noMic: "Le micro n’est pas accessible. Autorisez-le dans votre navigateur puis réessayez.",
     noShare: "Ce navigateur ne peut pas partager le fichier. Le vocal a été enregistré sur votre téléphone, envoyez-le par WhatsApp.",
+    permText: "Pour enregistrer votre voix, autorisez d’abord l’accès au micro.", allow: "Autoriser le micro",
+    permDenied: "Accès refusé. Appuyez sur l’icône à gauche de l’adresse du site (ou sur « Aa » / ⋮), ouvrez les paramètres du site, autorisez le micro, puis rechargez la page.",
     shareText: "Mon vœu pour la maison"
   },
   mg: {
@@ -106,13 +114,15 @@ const CONFIG = {
     thanksT: "Misaotra betsaka !", thanksP: "Anisan’ny trano izao ny feonao.", again: "Hamela hafatra hafa",
     noMic: "Tsy azo ampiasaina ny mikrô. Avelao ao amin’ny navigateur dia andramo indray.",
     noShare: "Tsy afaka mizara ny rakitra ity navigateur ity. Voatahiry ao amin’ny findainao ny feo, alefaso amin’ny WhatsApp.",
+    permText: "Mba hanoratra ny feonao, avelao aloha hampiasa ny mikrô.", allow: "Avelao ny mikrô",
+    permDenied: "Tsy navela. Tsindrio ny sary eo anilan’ny adiresy, sokafy ny paramètres du site, avelao ny mikrô, dia avereno ny pejy.",
     shareText: "Ny fanirianako ho an’ny trano"
   }
 };
 /* =================================== */
 
 const $ = id => document.getElementById(id);
-let lang = "fr", rec = null, chunks = [], blob = null, mime = "", ext = "webm", tick = null, secs = 0, stream = null, recording = false;
+let micOk = false, lang = "fr", rec = null, chunks = [], blob = null, mime = "", ext = "webm", tick = null, secs = 0, stream = null, recording = false;
 
 function t(k){ return CONFIG[lang][k]; }
 function render(){
@@ -120,6 +130,7 @@ function render(){
   $("title").textContent = t("title"); $("sub").textContent = t("sub");
   $("nameLabel").textContent = t("name"); $("redo").textContent = t("redo"); $("send").textContent = t("send");
   $("thanksT").textContent = t("thanksT"); $("thanksP").textContent = t("thanksP"); $("again").textContent = t("again");
+  $("permText").textContent = t("permText"); $("allow").textContent = t("allow"); $("permHelp").textContent = t("permDenied");
   $("hint").textContent = recording ? t("hintRec") : t("hintIdle");
   document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === lang));
 }
@@ -130,7 +141,7 @@ function fmt(s){ return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
 async function start(){
   try{
     stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  }catch(e){ $("hint").innerHTML = '<span class="err">' + t("noMic") + '</span>'; return; }
+  }catch(e){ micOk = false; $("recorder").hidden = true; $("perm").hidden = false; $("permHelp").hidden = false; return; }
   const types = ["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg"];
   mime = types.find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x)) || "";
   ext = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : "webm";
@@ -157,7 +168,7 @@ $("mic").onclick = () => recording ? stop() : start();
 
 function reset(){
   blob = null; $("player").removeAttribute("src");
-  $("review").hidden = true; $("recorder").hidden = false; $("timer").textContent = ""; $("status").textContent = ""; render();
+  $("review").hidden = true; $("recorder").hidden = !micOk; $("perm").hidden = micOk; $("timer").textContent = ""; $("status").textContent = ""; render();
 }
 $("redo").onclick = reset;
 $("again").onclick = () => { $("thanks").hidden = true; $("main").hidden = false; reset(); };
@@ -181,6 +192,23 @@ $("send").onclick = async () => {
   }
 };
 function done(){ $("main").hidden = true; $("thanks").hidden = false; }
+
+function micReady(){ micOk = true; $("perm").hidden = true; $("permHelp").hidden = true; if($("review").hidden) $("recorder").hidden = false; }
+$("allow").onclick = async () => {
+  try{
+    const s = await navigator.mediaDevices.getUserMedia({audio:true});
+    s.getTracks().forEach(x => x.stop());
+    micReady();
+  }catch(e){ $("permHelp").hidden = false; }
+};
+(async () => {
+  try{
+    const p = await navigator.permissions.query({name:"microphone"});
+    if(p.state === "granted") micReady();
+    if(p.state === "denied") $("permHelp").hidden = false;
+    p.onchange = () => { if(p.state === "granted") micReady(); };
+  }catch(e){ /* navigateur sans API de permissions : le bouton reste affiché */ }
+})();
 render();
 </script>
 </body>
