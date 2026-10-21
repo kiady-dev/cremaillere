@@ -93,6 +93,7 @@ audio{width:100%;margin:1rem 0 .4rem}
 /* ========= À MODIFIER ICI ========= */
 const CONFIG = {
   maxSeconds: 60,
+  scriptUrl: "https://script.google.com/macros/s/AKfycbypssSntF-RnJ4dCwN5PCp6Fyx8oon-eWOG8ZbuRGYQIkXQrKCWMHfTofDXQ4BjMCEq/exec",          // adresse du script Google (se termine par /exec)
   whatsapp: "",            // ton numéro, format international sans + ni espaces (ex : 261340000000). Laisse vide si inutile.
   fr: {
     title: "Pendaison de crémaillère : laissez-nous un vœu",
@@ -102,6 +103,7 @@ const CONFIG = {
     thanksT: "Merci de tout cœur !", thanksP: "Votre voix fait désormais partie de la maison.", again: "Laisser un autre message",
     noMic: "Le micro n’est pas accessible. Autorisez-le dans votre navigateur puis réessayez.",
     noShare: "Ce navigateur ne peut pas partager le fichier. Le vocal a été enregistré sur votre téléphone, envoyez-le par WhatsApp.",
+    uploading: "Envoi en cours…",
     permText: "Pour enregistrer votre voix, autorisez d’abord l’accès au micro.", allow: "Autoriser le micro",
     permDenied: "Accès refusé. Appuyez sur l’icône à gauche de l’adresse du site (ou sur « Aa » / ⋮), ouvrez les paramètres du site, autorisez le micro, puis rechargez la page.",
     shareText: "Mon vœu pour la maison"
@@ -114,6 +116,7 @@ const CONFIG = {
     thanksT: "Misaotra betsaka !", thanksP: "Anisan’ny trano izao ny feonao.", again: "Hamela hafatra hafa",
     noMic: "Tsy azo ampiasaina ny mikrô. Avelao ao amin’ny navigateur dia andramo indray.",
     noShare: "Tsy afaka mizara ny rakitra ity navigateur ity. Voatahiry ao amin’ny findainao ny feo, alefaso amin’ny WhatsApp.",
+    uploading: "Mandefa…",
     permText: "Mba hanoratra ny feonao, avelao aloha hampiasa ny mikrô.", allow: "Avelao ny mikrô",
     permDenied: "Tsy navela. Tsindrio ny sary eo anilan’ny adiresy, sokafy ny paramètres du site, avelao ny mikrô, dia avereno ny pejy.",
     shareText: "Ny fanirianako ho an’ny trano"
@@ -176,6 +179,16 @@ $("again").onclick = () => { $("thanks").hidden = true; $("main").hidden = false
 $("send").onclick = async () => {
   const who = ($("name").value || "invite").trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
   const file = new File([blob], "voeu-" + who + "." + ext, {type: blob.type});
+  if(CONFIG.scriptUrl){
+    $("status").textContent = t("uploading"); $("send").disabled = true; $("redo").disabled = true;
+    try{
+      const b64 = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.onerror = ko; fr.readAsDataURL(blob); });
+      const res = await fetch(CONFIG.scriptUrl, {method:"POST", body: JSON.stringify({name: $("name").value, mime: blob.type, ext, data: b64})});
+      const j = await res.json();
+      if(j.ok){ $("send").disabled = false; $("redo").disabled = false; done(); return; }
+    }catch(_){}
+    $("send").disabled = false; $("redo").disabled = false;
+  }
   $("status").textContent = t("sending");
   try{
     if(navigator.canShare && navigator.canShare({files:[file]})){
