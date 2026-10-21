@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Livre d’or vocal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFE6BF; --card:#FFF6E4; --ink:#3A2216; --soft:#7A5640; --accent:#B8431F; --accent-ink:#FFF6E4; --gold:#E39A1B; --line:#E8CFA3;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#2A1710; --card:#3B2218; --ink:#FBE8CC; --soft:#D2AE8B; --accent:#F2A93B; --accent-ink:#2A1710; --gold:#F2A93B; --line:#5A3A2A;}}
+:root[data-theme="dark"]{--bg:#2A1710; --card:#3B2218; --ink:#FBE8CC; --soft:#D2AE8B; --accent:#F2A93B; --accent-ink:#2A1710; --gold:#F2A93B; --line:#5A3A2A;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;font-size:17px;line-height:1.5;
+  background-image:radial-gradient(ellipse at 50% -10%,color-mix(in srgb,var(--gold) 35%,transparent),transparent 60%)}
+.wrap{max-width:30rem;margin:0 auto;padding:1.25rem 1.25rem 3rem}
+.lang{display:flex;justify-content:flex-end;gap:.4rem}
+.lang button{border:1px solid var(--line);background:transparent;color:var(--soft);padding:.3rem .8rem;border-radius:99px;font:inherit;font-size:.9rem;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+h1{font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(2.2rem,9vw,3rem);line-height:1.1;margin:1.6rem 0 .6rem;text-wrap:balance}
+.sub{color:var(--soft);margin:0 0 1.6rem;max-width:26rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:1.6rem;padding:1.5rem 1.25rem;text-align:center}
+label{display:block;text-align:left;font-weight:700;margin-bottom:.35rem}
+input[type=text]{width:100%;font:inherit;padding:.8rem 1rem;border-radius:.9rem;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.mic{margin:1.6rem auto .6rem;width:7.5rem;height:7.5rem;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 0 0 .6rem color-mix(in srgb,var(--accent) 22%,transparent)}
+.mic svg{width:3rem;height:3rem}
+.mic.rec{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 1.2rem color-mix(in srgb,var(--accent) 12%,transparent)}}
+@media (prefers-reduced-motion:reduce){.mic.rec{animation:none}}
+.hint{color:var(--soft);font-size:.95rem;min-height:1.5em;margin:.2rem 0}
+.timer{font-family:Fraunces,Georgia,serif;font-size:1.6rem;min-height:2rem}
+audio{width:100%;margin:1rem 0 .4rem}
+.row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-top:.8rem}
+.btn{font:inherit;font-weight:700;padding:.8rem 1.3rem;border-radius:99px;border:1.5px solid var(--accent);background:transparent;color:var(--ink);cursor:pointer}
+.btn.main{background:var(--accent);color:var(--accent-ink)}
+.err{color:var(--accent);font-weight:600}
+[hidden]{display:none!important}
+.thanks h2{font-family:Fraunces,Georgia,serif;font-style:italic;font-size:2rem;margin:.5rem 0}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="lang" role="group" aria-label="Langue">
+    <button data-l="fr" aria-pressed="true">FR</button>
+    <button data-l="mg" aria-pressed="false">MG</button>
+  </div>
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+
+  <section class="card" id="main">
+    <label for="name" id="nameLabel"></label>
+    <input type="text" id="name" maxlength="40" autocomplete="given-name">
+
+    <div id="recorder">
+      <button class="mic" id="mic" aria-label="Micro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+      </button>
+      <div class="timer" id="timer" aria-live="polite"></div>
+      <p class="hint" id="hint"></p>
+    </div>
+
+    <div id="review" hidden>
+      <audio id="player" controls></audio>
+      <div class="row">
+        <button class="btn" id="redo"></button>
+        <button class="btn main" id="send"></button>
+      </div>
+      <p class="hint" id="status"></p>
+    </div>
+  </section>
+
+  <section class="card thanks" id="thanks" hidden>
+    <h2 id="thanksT"></h2>
+    <p class="sub" id="thanksP" style="margin:0 auto 1rem"></p>
+    <button class="btn" id="again"></button>
+  </section>
+</main>
+
+<script>
+/* ========= À MODIFIER ICI ========= */
+const CONFIG = {
+  maxSeconds: 60,
+  whatsapp: "",            // ton numéro, format international sans + ni espaces (ex : 261340000000). Laisse vide si inutile.
+  fr: {
+    title: "Pendaison de crémaillère : laissez-nous un vœu",
+    sub: "Appuyez sur le micro et dites-nous quelques mots : un souhait, un souvenir, un sourire.",
+    name: "Votre prénom", hintIdle: "Appuyez pour parler", hintRec: "Je vous écoute… appuyez pour arrêter",
+    redo: "Recommencer", send: "Envoyer mon vœu", sending: "Ouverture du partage…",
+    thanksT: "Merci de tout cœur !", thanksP: "Votre voix fait désormais partie de la maison.", again: "Laisser un autre message",
+    noMic: "Le micro n’est pas accessible. Autorisez-le dans votre navigateur puis réessayez.",
+    noShare: "Ce navigateur ne peut pas partager le fichier. Le vocal a été enregistré sur votre téléphone, envoyez-le par WhatsApp.",
+    shareText: "Mon vœu pour la maison"
+  },
+  mg: {
+    title: "Fanokafana ny trano vaovao: avelao eto ny faniriana",
+    sub: "Tsindrio ny mikrô ary ataovy feo ny teny vitsivitsy: faniriana, fahatsiarovana na tsiky.",
+    name: "Ny anaranao", hintIdle: "Tsindrio mba hiteny", hintRec: "Henoiko… tsindrio raha vita",
+    redo: "Averina", send: "Alefaso ny faniriana", sending: "Mivoha ny fizarana…",
+    thanksT: "Misaotra betsaka !", thanksP: "Anisan’ny trano izao ny feonao.", again: "Hamela hafatra hafa",
+    noMic: "Tsy azo ampiasaina ny mikrô. Avelao ao amin’ny navigateur dia andramo indray.",
+    noShare: "Tsy afaka mizara ny rakitra ity navigateur ity. Voatahiry ao amin’ny findainao ny feo, alefaso amin’ny WhatsApp.",
+    shareText: "Ny fanirianako ho an’ny trano"
+  }
+};
+/* =================================== */
+
+const $ = id => document.getElementById(id);
+let lang = "fr", rec = null, chunks = [], blob = null, mime = "", ext = "webm", tick = null, secs = 0, stream = null, recording = false;
+
+function t(k){ return CONFIG[lang][k]; }
+function render(){
+  document.documentElement.lang = lang;
+  $("title").textContent = t("title"); $("sub").textContent = t("sub");
+  $("nameLabel").textContent = t("name"); $("redo").textContent = t("redo"); $("send").textContent = t("send");
+  $("thanksT").textContent = t("thanksT"); $("thanksP").textContent = t("thanksP"); $("again").textContent = t("again");
+  $("hint").textContent = recording ? t("hintRec") : t("hintIdle");
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === lang));
+}
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => { lang = b.dataset.l; render(); });
+
+function fmt(s){ return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); }
+
+async function start(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){ $("hint").innerHTML = '<span class="err">' + t("noMic") + '</span>'; return; }
+  const types = ["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg"];
+  mime = types.find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x)) || "";
+  ext = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : "webm";
+  rec = new MediaRecorder(stream, mime ? {mimeType:mime} : undefined);
+  chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  rec.onstop = () => {
+    stream.getTracks().forEach(x => x.stop());
+    blob = new Blob(chunks, {type: rec.mimeType || mime || "audio/webm"});
+    $("player").src = URL.createObjectURL(blob);
+    $("recorder").hidden = true; $("review").hidden = false; $("status").textContent = "";
+  };
+  rec.start(); recording = true; secs = 0;
+  $("mic").classList.add("rec"); $("timer").textContent = "0:00"; render();
+  tick = setInterval(() => { secs++; $("timer").textContent = fmt(secs); if(secs >= CONFIG.maxSeconds) stop(); }, 1000);
+}
+function stop(){
+  clearInterval(tick); recording = false;
+  $("mic").classList.remove("rec");
+  if(rec && rec.state !== "inactive") rec.stop();
+  render();
+}
+$("mic").onclick = () => recording ? stop() : start();
+
+function reset(){
+  blob = null; $("player").removeAttribute("src");
+  $("review").hidden = true; $("recorder").hidden = false; $("timer").textContent = ""; $("status").textContent = ""; render();
+}
+$("redo").onclick = reset;
+$("again").onclick = () => { $("thanks").hidden = true; $("main").hidden = false; reset(); };
+
+$("send").onclick = async () => {
+  const who = ($("name").value || "invite").trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
+  const file = new File([blob], "voeu-" + who + "." + ext, {type: blob.type});
+  $("status").textContent = t("sending");
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], text: t("shareText") + ($("name").value ? " – " + $("name").value : "")});
+      done(); return;
+    }
+    throw new Error("no-share");
+  }catch(e){
+    if(e && e.name === "AbortError"){ $("status").textContent = ""; return; }
+    let saved = false;
+    try{ const d = await claude.use("downloads"); if(d){ await d.save({filename:file.name, data:file}); saved = true; } }catch(_){}
+    $("status").innerHTML = '<span class="err">' + t("noShare") + '</span>';
+    if(saved && CONFIG.whatsapp){ window.open("https://wa.me/" + CONFIG.whatsapp, "_blank"); }
+  }
+};
+function done(){ $("main").hidden = true; $("thanks").hidden = false; }
+render();
+</script>
+</body>
+</html>
